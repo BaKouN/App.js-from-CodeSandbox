@@ -96,8 +96,8 @@ function Minimap() {
   const bodyRef   = useRef();          // corps du texte (non utilisé ici)
   const scroll    = useScroll();
   const { width, height } = useThree((s) => s.viewport);
-  const { slides } = useSnapshot(state);
-  const titleYOffset = 0.3; // in world units.
+  const { slides, clicked } = useSnapshot(state);
+  const titleYOffset = 0.2; // in world units.
   const dateYOffset = 1.25; // in world units.
   const ticksYOffset = 1; // in world units.
   const bodyYOffset = 0.1;
@@ -154,7 +154,9 @@ function Minimap() {
       {/* titre dynamique (au-dessus de la barre) */}
       <Text
         ref={titleRef}
+        visible={clicked !== null}  /* show when clicked */
         position={[0, -height / 2 + titleYOffset + bottomGap, 0]}
+        font="/BowlbyOne-Regular.ttf"
         fontSize={0.22}
         maxWidth={titreMaxWidth}  /* max width for the title */
         textAlign='center'
@@ -167,8 +169,10 @@ function Minimap() {
 
       <Text
         ref={bodyRef}
+        visible={clicked !== null}  /* show when clicked */
         position={[0, -height / 2 + bodyYOffset + bottomGap, 0]}
         fontSize={0.15}
+        font='/Delius-Regular.ttf'
         maxWidth={titreMaxWidth}  /* max width for the title */
         textAlign='left'
         anchorX="center"

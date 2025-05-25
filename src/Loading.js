@@ -38,8 +38,8 @@ useEffect(() => {
 
       {/* overlay is rendered until done === true */}
       <div className={`loader-overlay ${done ? 'fade-out' : ''}`}>
-        <h1 className="loader-title">Ta surprise est bientot prete Emma...</h1>
-        <h2 className="loader-title">De la part ton plus grand fan</h2>
+        <h1 className="loader-title">Merci d'avoir patienté toute cette journée Emma...</h1>
+        <h2 className="loader-title">J'espere que tu vas kiffer ton premier cadeau d'anniversaire de ma part</h2>
       </div>
     </>
   );

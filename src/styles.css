@@ -22,10 +22,13 @@ body {
 
 h1, h2 {
   font-size: 30vw;
-  font-weight: 400;
   letter-spacing: -0.05em;
   margin: 0;
   padding: 0;
+  font-family: "Delius", cursive;
+  font-weight: 400;
+  font-style: normal;
+
 }
 
 a {
@@ -36,4 +39,16 @@ a {
 
 svg {
   fill: #a0a0a0;
+}
+
+/* transition générique pour .fade-in-up   (durées ajustables)  */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.fade-in-up.show {
+  opacity: 1;
+  transform: translateY(0);
 }

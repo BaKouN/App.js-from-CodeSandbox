@@ -28,6 +28,11 @@ useEffect(() => {
   });
 
   Promise.all([win, imgs, threeReady]).then(() => setDone(true));
+
+  setTimeout(() => {
+    // If the loading takes too long, we still want to show the overlay
+    setDone(true);
+  }, 10000); // 10 seconds timeout, adjust as needed
 }, [sources]);
 
   

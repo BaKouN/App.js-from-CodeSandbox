@@ -20,11 +20,10 @@ body {
   font-family: 'Inter var', sans-serif;
 }
 
-h1 {
+h1, h2 {
   font-size: 30vw;
   font-weight: 400;
   letter-spacing: -0.05em;
-  line-height: 0.7em;
   margin: 0;
   padding: 0;
 }

@@ -93,12 +93,14 @@ function Minimap() {
   const groupRef  = useRef();          // ticks + textes
   const titleRef  = useRef();          // titre dynamique
   const dateRef   = useRef();          // date dynamique
+  const bodyRef   = useRef();          // corps du texte (non utilisé ici)
   const scroll    = useScroll();
   const { width, height } = useThree((s) => s.viewport);
   const { slides } = useSnapshot(state);
-  const titleYOffset = 0.5; // in world units.
+  const titleYOffset = 0.3; // in world units.
   const dateYOffset = 1.25; // in world units.
   const ticksYOffset = 1; // in world units.
+  const bodyYOffset = 0.1;
 
   const stripHalf = (slides.length * tickGap) / 2;
   const titreMaxWidth = width * 0.8; // max width of the title text
@@ -120,10 +122,16 @@ function Minimap() {
     const newTitle = slides[idx].title;
     if (titleRef.current.text !== newTitle) titleRef.current.text = newTitle;
 
+    /* — maj du body — */
+    const newBody = slides[idx].body;
+    if (bodyRef.current.text !== newBody) bodyRef.current.text = newBody;
+
     /* — maj de la date — */
     const newDate = frLabel.format(new Date(slides[idx].date));
     if (dateRef.current.text !== newDate) dateRef.current.text = newDate;
     easing.damp(dateRef.current.position, 'x', -stripHalf + idx * tickGap, 0.2, dt);
+
+
   });
 
   return (
@@ -151,10 +159,23 @@ function Minimap() {
         maxWidth={titreMaxWidth}  /* max width for the title */
         textAlign='center'
         anchorX="center"
-        anchorY="middle"
+        anchorY="bottom"
         color="#ffffff"
       >
         {slides[0].title}
+      </Text>
+
+      <Text
+        ref={bodyRef}
+        position={[0, -height / 2 + bodyYOffset + bottomGap, 0]}
+        fontSize={0.15}
+        maxWidth={titreMaxWidth}  /* max width for the title */
+        textAlign='left'
+        anchorX="center"
+        anchorY="top"
+        color="#ffffff"
+      >
+        {slides[0].body}
       </Text>
 
       {/* date dynamique (plus petite, un peu plus bas) */}

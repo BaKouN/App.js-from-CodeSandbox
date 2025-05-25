@@ -1,7 +1,8 @@
 import { createRoot } from 'react-dom/client'
-import { Suspense } from 'react'
 import './styles.css'
 import { App } from './App'
+import Preloader from './Loading'
+import { slides } from './gallery'
 
 function Overlay() {
   return (
@@ -11,11 +12,13 @@ function Overlay() {
   )
 }
 
+const mustHave = slides.map(s => s.url);
+
 createRoot(document.getElementById('root')).render(
   <>
-    <Suspense fallback={null}>
+    <Preloader sources={mustHave}>
       <App />
-    </Suspense>
+    </Preloader>
     <Overlay />
   </>
 )

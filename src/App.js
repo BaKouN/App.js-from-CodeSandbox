@@ -10,7 +10,7 @@ import { slides } from './gallery'
 const material = new THREE.LineBasicMaterial({ color: 'white' })
 const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(0, 0.5, 0)])
 
-const bottomGap = 0.5;
+const bottomGap = 1;
 const tickGap   = 0.06;  
 
 const state = proxy({
@@ -23,7 +23,7 @@ const frLabel = new Intl.DateTimeFormat('fr-FR', {
   month: 'long'
 });
 
-function AutoCloseWhenStable({ xW, threshold = 0.3 }) {
+function AutoCloseWhenStable({ xW, threshold = 0.5 }) {
   const scroll = useScroll()
   const { width } = useThree((s) => s.viewport)
   const { clicked } = useSnapshot(state)
@@ -96,6 +96,9 @@ function Minimap() {
   const scroll    = useScroll();
   const { width, height } = useThree((s) => s.viewport);
   const { slides } = useSnapshot(state);
+  const titleYOffset = 0.5; // in world units.
+  const dateYOffset = 1.25; // in world units.
+  const ticksYOffset = 1; // in world units.
 
   const stripHalf = (slides.length * tickGap) / 2;
   const titreMaxWidth = width * 0.8; // max width of the title text
@@ -133,7 +136,7 @@ function Minimap() {
           material={material}
           position={[
             -stripHalf + i * tickGap,
-            -height / 2 + 0.6 + bottomGap,
+            -height / 2 + ticksYOffset + bottomGap,
             0
           ]}
           userData={{ isTick: true, idx: i }}
@@ -143,7 +146,7 @@ function Minimap() {
       {/* titre dynamique (au-dessus de la barre) */}
       <Text
         ref={titleRef}
-        position={[0, -height / 2 + 1 + bottomGap, 0]}
+        position={[0, -height / 2 + titleYOffset + bottomGap, 0]}
         fontSize={0.22}
         maxWidth={titreMaxWidth}  /* max width for the title */
         textAlign='center'
@@ -157,7 +160,7 @@ function Minimap() {
       {/* date dynamique (plus petite, un peu plus bas) */}
       <Text
         ref={dateRef}
-        position={[0, -height / 2 + 0.3 + bottomGap, 0]}
+        position={[0, -height / 2 + dateYOffset + bottomGap, 0]}
         fontSize={0.12}            /* plus petit */
         anchorX="center"
         anchorY="middle"

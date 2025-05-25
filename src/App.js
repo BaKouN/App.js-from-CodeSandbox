@@ -1,112 +1,205 @@
 import * as THREE from 'three'
 import { useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Image, ScrollControls, Scroll, useScroll } from '@react-three/drei'
+import { Image, ScrollControls, Scroll, useScroll, Text } from '@react-three/drei'
 import { proxy, useSnapshot } from 'valtio'
 import { easing } from 'maath'
+
+import { slides } from './gallery'
 
 const material = new THREE.LineBasicMaterial({ color: 'white' })
 const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(0, 0.5, 0)])
 
-const imgFiles = [
-  'clubMed.webp',
-  'btb1.webp',
-  'btb2.webp',
-  'btb3.webp',
-  'picnic1.webp',
-  'picnic2.webp',
-  'picnic3.webp',
-  'picnic4.webp',
-  'basketDate.webp',
-  'ghibliBasket.PNG',       // ⇠ the PNG files
-  'sofa.webp',
-  'photobooth.webp',
-  'ghibliPhotoMaton.PNG',   // ⇠ keep the upper-case extension
-  'blueDressJeMeurs1.webp',
-  'blueDressJeMeurs2.webp',
-  'blueDressJeMeurs3.webp',
-  'blueDressJeMeurs4.webp',
-  'blueDressJeMeurs5.webp',
-  'cafe1.webp',
-  'cook1.webp',
-  'fievre1.webp',
-  'fievre2.webp',
-  'fievre3.webp',
-  'melon.webp',
-  'paparazzi1.webp',
-  'paparazzi2.webp',
-  'pizza1.webp',
-  'pizza2.webp',
-  'quai2.webp',
-];
+const bottomGap = 0.5;
+const tickGap   = 0.06;  
 
 const state = proxy({
   clicked: null,
-  urls: imgFiles.map((file) => `/${file}`)
+  slides
+});
+
+const frLabel = new Intl.DateTimeFormat('fr-FR', {
+  day:   'numeric',
+  month: 'long'
 });
 
 function Minimap() {
-  const ref = useRef()
-  const scroll = useScroll()
-  const { urls } = useSnapshot(state)
-  const { height } = useThree((state) => state.viewport)
-  useFrame((state, delta) => {
-    ref.current.children.forEach((child, index) => {
-      // Give me a value between 0 and 1
-      //   starting at the position of my item
-      //   ranging across 4 / total length
-      //   make it a sine, so the value goes from 0 to 1 to 0.
-      const y = scroll.curve(index / urls.length - 1.5 / urls.length, 4 / urls.length)
-      easing.damp(child.scale, 'y', 0.15 + y / 6, 0.15, delta)
-    })
-  })
+  const groupRef  = useRef();          // ticks + textes
+  const titleRef  = useRef();          // titre dynamique
+  const dateRef   = useRef();          // date dynamique
+  const scroll    = useScroll();
+  const { width, height } = useThree((s) => s.viewport);
+  const { slides } = useSnapshot(state);
+
+  const stripHalf = (slides.length * tickGap) / 2;
+  const titreMaxWidth = width * 0.8; // max width of the title text
+
+  useFrame((_, dt) => {
+    /* — animation “respiration” des ticks — */
+    groupRef.current.children.forEach((child) => {
+      if (child.userData.isTick) {
+        const i = child.userData.idx;
+        const y = scroll.curve(i / slides.length - 1.5 / slides.length, 4 / slides.length);
+        easing.damp(child.scale, 'y', 0.15 + y / 6, 0.15, dt);
+      }
+    });
+
+    /* — index du slide le plus proche du centre — */
+    const idx = Math.round(scroll.offset * (slides.length - 1));
+
+    /* — maj du titre — */
+    const newTitle = slides[idx].title;
+    if (titleRef.current.text !== newTitle) titleRef.current.text = newTitle;
+
+    /* — maj de la date — */
+    const newDate = frLabel.format(new Date(slides[idx].date));
+    if (dateRef.current.text !== newDate) dateRef.current.text = newDate;
+    easing.damp(dateRef.current.position, 'x', -stripHalf + idx * tickGap, 0.2, dt);
+  });
+
   return (
-    <group ref={ref}>
-      {urls.map((_, i) => (
-        <line key={i} geometry={geometry} material={material} position={[i * 0.06 - urls.length * 0.03, -height / 2 + 0.6, 0]} />
+    <group ref={groupRef}>
+      {/* ticks */}
+      {slides.map((_, i) => (
+        <line
+          key={i}
+          geometry={geometry}
+          material={material}
+          position={[
+            -stripHalf + i * tickGap,
+            -height / 2 + 0.6 + bottomGap,
+            0
+          ]}
+          userData={{ isTick: true, idx: i }}
+        />
       ))}
+
+      {/* titre dynamique (au-dessus de la barre) */}
+      <Text
+        ref={titleRef}
+        position={[0, -height / 2 + 1 + bottomGap, 0]}
+        fontSize={0.22}
+        maxWidth={titreMaxWidth}  /* max width for the title */
+        textAlign='center'
+        anchorX="center"
+        anchorY="middle"
+        color="#ffffff"
+      >
+        {slides[0].title}
+      </Text>
+
+      {/* date dynamique (plus petite, un peu plus bas) */}
+      <Text
+        ref={dateRef}
+        position={[0, -height / 2 + 0.3 + bottomGap, 0]}
+        fontSize={0.12}            /* plus petit */
+        anchorX="center"
+        anchorY="middle"
+        color="#ffffff"
+      >
+        {frLabel.format(new Date(slides[0].date))}
+      </Text>
     </group>
-  )
+  );
 }
 
-function Item({ index, position, scale, c = new THREE.Color(), ...props }) {
-  const ref = useRef()
-  const scroll = useScroll()
-  const { clicked, urls } = useSnapshot(state)
-  const [hovered, hover] = useState(false)
-  const click = () => (state.clicked = index === clicked ? null : index)
-  const over = () => hover(true)
-  const out = () => hover(false)
-  useFrame((state, delta) => {
-    const y = scroll.curve(index / urls.length - 1.5 / urls.length, 4 / urls.length)
-    easing.damp3(ref.current.scale, [clicked === index ? 4.7 : scale[0], clicked === index ? 5 : 4 + y, 1], 0.15, delta)
-    ref.current.material.scale[0] = ref.current.scale.x
-    ref.current.material.scale[1] = ref.current.scale.y
-    if (clicked !== null && index < clicked) easing.damp(ref.current.position, 'x', position[0] - 2, 0.15, delta)
-    if (clicked !== null && index > clicked) easing.damp(ref.current.position, 'x', position[0] + 2, 0.15, delta)
-    if (clicked === null || clicked === index) easing.damp(ref.current.position, 'x', position[0], 0.15, delta)
-    easing.damp(ref.current.material, 'grayscale', hovered || clicked === index ? 0 : Math.max(0, 1 - y), 0.15, delta)
-    easing.dampC(ref.current.material.color, hovered || clicked === index ? 'white' : '#aaa', hovered ? 0.3 : 0.15, delta)
-  })
-  return <Image ref={ref} {...props} position={position} scale={scale} onClick={click} onPointerOver={over} onPointerOut={out} />
+function Item({ index, position, scale, slide, c = new THREE.Color(), ...props }) {
+  // ————————————————————————————————————————————————————————
+  // Refs & reactive values
+  const ref    = useRef();                 // pointer to this <Image>
+  const scroll = useScroll();              // drei helper: 0‒1 scroll value
+  const { clicked, slides } = useSnapshot(state); // read proxy state
+  const [hovered, hover] = useState(false);       // local hover state
+
+  // ————————————————————————————————————————————————————————
+  // Event handlers (unchanged)
+  const click = () => (state.clicked = index === clicked ? null : index);
+  const over  = () => hover(true);
+  const out   = () => hover(false);
+
+  // ————————————————————————————————————————————————————————
+  // Per-frame animation logic (unchanged math; just uses slides.length)
+  useFrame((_, delta) => {
+    const y = scroll.curve(index / slides.length - 1.5 / slides.length, 4 / slides.length);
+
+    // Scale the plane itself
+    easing.damp3(
+      ref.current.scale,
+      [clicked === index ? 4.7 : scale[0], clicked === index ? 5 : 4 + y, 1],
+      0.15,
+      delta
+    );
+
+    // Sync the internal texture scaling with the mesh scaling
+    ref.current.material.scale[0] = ref.current.scale.x;
+    ref.current.material.scale[1] = ref.current.scale.y;
+
+    // Slide left/right when another tile is clicked
+    if (clicked !== null && index < clicked)
+      easing.damp(ref.current.position, 'x', position[0] - 2, 0.15, delta);
+    if (clicked !== null && index > clicked)
+      easing.damp(ref.current.position, 'x', position[0] + 2, 0.15, delta);
+    if (clicked === null || clicked === index)
+      easing.damp(ref.current.position, 'x', position[0], 0.15, delta);
+
+    // Grayscale fade based on distance + hover
+    easing.damp(
+      ref.current.material,
+      'grayscale',
+      hovered || clicked === index ? 0 : Math.max(0, 1 - y),
+      0.15,
+      delta
+    );
+
+    // Color tint (white on hover/click, light-gray otherwise)
+    easing.dampC(
+      ref.current.material.color,
+      hovered || clicked === index ? 'white' : '#aaa',
+      hovered ? 0.3 : 0.15,
+      delta
+    );
+  });
+
+  // ————————————————————————————————————————————————————————
+  // Render: same props, just pass slide.url explicitly
+  return (
+    <Image
+      ref={ref}
+      url={slide.url}            /* NEW: pull URL from the slide object */
+      position={position}
+      scale={scale}
+      onClick={click}
+      onPointerOver={over}
+      onPointerOut={out}
+      {...props}                /* keep any extra props you forward in <Items /> */
+    />
+  );
 }
 
 function Items({ w = 1.5, gap = 0.6 }) {
-  const { urls } = useSnapshot(state)
-  const { width } = useThree((state) => state.viewport)
-  const xW = w + gap
+  const { width } = useThree((s) => s.viewport);
+  const xW = w + gap;
+
   return (
-    <ScrollControls horizontal damping={0.1} pages={(width - xW + urls.length * xW) / width}>
-      <Minimap />
+    <ScrollControls horizontal damping={0.1} pages={(width - xW + state.slides.length * xW) / width}>
+      <Minimap xW={xW} />
       <Scroll>
-        {urls.map((url, i) => <Item key={i} index={i} position={[i * xW, 0, 0]} scale={[w, 4, 1]} url={url} />) /* prettier-ignore */}
+        {state.slides.map((slide, i) => (
+          <Item
+            key={i}
+            index={i}
+            position={[i * xW, bottomGap, 0]}
+            scale={[w, 4, 1]}
+            slide={slide}   // pass whole object
+          />
+        ))}
       </Scroll>
     </ScrollControls>
-  )
+  );
 }
 
 export const App = () => (
   <Canvas gl={{ antialias: false }} dpr={[1, 1.5]} onPointerMissed={() => (state.clicked = null)}>
-    <Items />
+    <Items className="gallery" />
   </Canvas>
 )

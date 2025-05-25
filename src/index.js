@@ -6,7 +6,7 @@ import { App } from './App'
 function Overlay() {
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', width: '100%', height: '100%' }}>
-      <div style={{ position: 'absolute', bottom: 20 , right: 20, fontSize: '13px' }}>For Emma, my futue wife.</div>
+      <div style={{ position: 'absolute', top: 20 , left: 20, fontSize: '13px' }}>For Emma, my futue wife.</div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Image, ScrollControls, Scroll, useScroll, Text } from '@react-three/drei'
 import { proxy, useSnapshot } from 'valtio'
@@ -22,6 +22,72 @@ const frLabel = new Intl.DateTimeFormat('fr-FR', {
   day:   'numeric',
   month: 'long'
 });
+
+function AutoCloseWhenStable({ xW, threshold = 0.3 }) {
+  const scroll = useScroll()
+  const { width } = useThree((s) => s.viewport)
+  const { clicked } = useSnapshot(state)
+
+  const targetScrollPosition = useRef(null)
+  const isAtTarget = useRef(false)
+  const lastManualOffset = useRef(null)
+
+  // When an image is clicked, calculate where we should scroll to
+  useEffect(() => {
+    if (clicked !== null) {
+      // Calculate the target scroll position for this clicked image
+      const totalWorldWidth = state.slides.length * xW
+      const targetRatio = clicked / (state.slides.length - 1)
+      targetScrollPosition.current = targetRatio
+      isAtTarget.current = false
+      lastManualOffset.current = null
+    }
+  }, [clicked, xW])
+
+  useFrame(() => {
+    if (clicked === null) return
+
+    const currentOffset = scroll.offset
+
+    // Check if we've reached the target position (within a small tolerance)
+    if (!isAtTarget.current && targetScrollPosition.current !== null) {
+      const tolerance = 0.02 // 2% tolerance
+      if (Math.abs(currentOffset - targetScrollPosition.current) < tolerance) {
+        isAtTarget.current = true
+        lastManualOffset.current = currentOffset
+        return
+      }
+      // Still scrolling to target, don't check for auto-close
+      return
+    }
+
+    // We're at the target position, now detect manual scrolling
+    if (isAtTarget.current && lastManualOffset.current !== null) {
+      // Calculate total distance moved from the target position
+      const totalDistanceFromTarget = Math.abs(currentOffset - targetScrollPosition.current)
+
+      // If we've moved significantly away from target, check for auto-close
+      if (totalDistanceFromTarget > 0.02) {
+        // 2% total movement from target
+        const totalWorldWidth = state.slides.length * xW
+        const scrollWorldPos = currentOffset * totalWorldWidth
+        const viewportCenter = scrollWorldPos + width / 2
+        const clickedSlideCenter = clicked * xW + xW / 2
+
+        const distanceFromCenter = Math.abs(viewportCenter - clickedSlideCenter)
+        const closeThreshold = width * threshold
+
+        if (distanceFromCenter > closeThreshold) {
+          state.clicked = null
+        }
+      }
+
+      lastManualOffset.current = currentOffset
+    }
+  })
+
+  return null
+}
 
 function Minimap() {
   const groupRef  = useRef();          // ticks + textes
@@ -113,7 +179,15 @@ function Item({ index, position, scale, slide, c = new THREE.Color(), ...props }
 
   // ————————————————————————————————————————————————————————
   // Event handlers (unchanged)
-  const click = () => (state.clicked = index === clicked ? null : index);
+  const click = () => {
+    const refWidthBefore = ref.current.width; // save width before scroll
+    console.log({ index, windowWidth: window.innerWidth, slidesLength: slides.length, scroll, position });
+    state.clicked = index === clicked ? null : index;
+    const maxPx    = scroll.el.scrollWidth - scroll.el.clientWidth;
+    const ratio    = index / (slides.length - 1);  // 0 → 1
+
+    scroll.el.scrollTo({ left: ratio * maxPx, behavior: 'smooth' });
+  };
   const over  = () => hover(true);
   const out   = () => hover(false);
 
@@ -176,13 +250,14 @@ function Item({ index, position, scale, slide, c = new THREE.Color(), ...props }
   );
 }
 
-function Items({ w = 1.5, gap = 0.6 }) {
+function Items({ w = 1, gap = 0.2 }) {
   const { width } = useThree((s) => s.viewport);
   const xW = w + gap;
 
   return (
     <ScrollControls horizontal damping={0.1} pages={(width - xW + state.slides.length * xW) / width}>
-      <Minimap xW={xW} />
+      <AutoCloseWhenStable xW={xW} />
+      <Minimap />
       <Scroll>
         {state.slides.map((slide, i) => (
           <Item

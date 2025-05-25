@@ -32,7 +32,7 @@ useEffect(() => {
   setTimeout(() => {
     // If the loading takes too long, we still want to show the overlay
     setDone(true);
-  }, 10000); // 10 seconds timeout, adjust as needed
+  }, 5000); // 10 seconds timeout, adjust as needed
 }, [sources]);
 
   
